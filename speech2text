@@ -2,7 +2,7 @@
 
 ## hyphop ##
 
-#? speech2text simple script wrapper for open-ai whisper - voice recognition speech to text
+#? speech2text simple script wrapper for open-ai whisper - voice recognition speech to text - perfect for local offline usage
 
 P=/tmp/s2t.pid
 
