@@ -22,8 +22,8 @@ DIE(){
     exit 1
 }
 
-#MODEL=${MODE:-turbo} # big and much slow
-MODEL=${MODE:-small}
+#MODEL=${MODEL:-turbo} # big and much slow
+MODEL=${MODEL:-small}
 DURATION=${DURATION:-30}
 CACHE=~/.cache/whisper
 WA=~/whisper-env/bin/activate
