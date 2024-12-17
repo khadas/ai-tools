@@ -22,7 +22,12 @@ DIE(){
     exit 1
 }
 
+#MODEL=${MODE:-turbo} # big and much slow
+MODEL=${MODE:-small}
+DURATION=${DURATION:-30}
+CACHE=~/.cache/whisper
 WA=~/whisper-env/bin/activate
+WORK=${WORK:-~/speech2text}
 
 [ -s $WA ] && source $WA
 
@@ -40,6 +45,21 @@ whisper=${whisper:-$(which whisper 2>/dev/null)}
 
 "
 
+[ -s "$CACHE/$MODEL.pt" ] || {
+
+echo Download model: $MODEL to $CACHE ...
+#whisper --model "$MODEL" --help
+
+cat <<EOF | python3
+import whisper
+
+# Load the "small" model (downloads if not available)
+model = whisper.load_model("$MODEL")
+print("Model downloaded successfully!")
+
+EOF
+}
+
 which arecord 2>/dev/null || DIE "arecord not found, need to install...
 
     sudo apt install alsa-utils
@@ -48,20 +68,20 @@ which arecord 2>/dev/null || DIE "arecord not found, need to install...
 
 trap hops INT TERM KILL
 
-D=~/speech2text
-mkdir -p "$D"
-cd "$D"
 
-F=$D/s2t.$(hostname)-$(date +%s).wav
-LOG=/tmp/speech2text.log
+mkdir -p "$WORK"
+cd "$WORK"
+
+F="$WORK/s2t.$(hostname)-$(date +%s)".wav
+LOG=${LOG:-/tmp/speech2text.log}
 
 echo "Speech to Text > $F ... Ctrl+C to stop"
-echo Listening microphone ...
+echo Listening microphone $DURATION sec ...
 
 CMD arecord \
     --vumeter=mono \
     --process-id-file "$P" \
-    -d 30 \
+    -d $DURATION \
     -f S16_LE \
     -c1 \
     -r16000 "$F"
@@ -71,9 +91,14 @@ CMD arecord \
 TXT=${F%.*}.txt
 
 echo "Speech to Text > $F > $TXT"
-CMD whisper "$F" --model small "$@" #2>$LOG
+CMD whisper "$F" --model $MODEL "$@" #2>$LOG
 
 grep "" -H "$TXT"
+
+which xsel >/dev/null 2>&2 || DIE "sudo apt install xsel
+? if auto copy into clipboard buffer needed ?
+"
+
 xsel -b < "$TXT"
 
 exit
