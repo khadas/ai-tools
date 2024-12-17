@@ -1,0 +1,85 @@
+#!/bin/bash
+
+## hyphop ##
+
+#? speech2text simple script wrapper for whisper - voice recognition to text
+
+P=/tmp/s2t.pid
+
+hops(){
+    pkill --signal INT arecord
+    echo "BYBY"
+#    echo "Speech to Text $(cat $P 2>/dev/null)"
+}
+
+CMD(){
+    echo "# $@">&2
+    "$@"
+}
+
+DIE(){
+    echo "[DIE] $@">&2
+    exit 1
+}
+
+WA=~/whisper-env/bin/activate
+
+[ -s $WA ] && source $WA
+
+whisper=${whisper:-$(which whisper 2>/dev/null)}
+
+[ -s "$whisper" ] || DIE "whisper not found, need to install...
+
+    sudo apt install python3 python3-pip
+    sudo apt install python3.12-venv
+    sudo apt install git
+    python3 -m venv ~/whisper-env
+    source ~/whisper-env/bin/activate
+    cd
+    pip install git+https://github.com/openai/whisper.git
+
+"
+
+which arecord 2>/dev/null || DIE "arecord not found, need to install...
+
+    sudo apt install alsa-utils
+
+"
+
+trap hops INT TERM KILL
+
+D=~/speech2text
+mkdir -p "$D"
+cd "$D"
+
+F=$D/s2t.$(hostname)-$(date +%s).wav
+LOG=/tmp/speech2text.log
+
+echo "Speech to Text > $F ... Ctrl+C to stop"
+echo Listening microphone ...
+
+CMD arecord \
+    --vumeter=mono \
+    --process-id-file "$P" \
+    -d 30 \
+    -f S16_LE \
+    -c1 \
+    -r16000 "$F"
+
+[ -s "$F" ] || DIE
+
+TXT=${F%.*}.txt
+
+echo "Speech to Text > $F > $TXT"
+CMD whisper "$F" --model small "$@" #2>$LOG
+
+grep "" -H "$TXT"
+xsel -b < "$TXT"
+
+exit
+
+<<END
+
+Detected language: English
+[00:00.000 --> 00:05.000]  Hello, I love you. What is your name?
+/home/hyp/speech2text/s2t.hop-1733884614.txt:Hello, I love you. What is your name?
